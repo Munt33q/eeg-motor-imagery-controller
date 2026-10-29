@@ -19,5 +19,6 @@ artifacts/*.joblib
 .DS_Store
 Thumbs.db
 
-# local pytest scratch dir (sandbox only; not needed on normal machines)
+# local pytest scratch dirs
 .pytest_tmp/
+.pytest_cache/
