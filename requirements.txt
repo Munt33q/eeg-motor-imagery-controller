@@ -1,0 +1,9 @@
+# Direct dependencies (resolved versions in requirements-lock.txt)
+mne
+numpy
+scipy
+scikit-learn
+pandas
+plotly
+joblib
+pytest

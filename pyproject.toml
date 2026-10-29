@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eeg-motor-imagery-controller"
+version = "0.1.0"
+description = "Recorded-replay EEG motor-imagery BCI demonstration (PhysioNet EEGMMIDB, CSP+LDA, cue-timed replay)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "eeg-motor-imagery-controller contributors" }]
+dependencies = [
+    "mne>=1.7",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "scikit-learn>=1.4",
+    "pandas>=2.1",
+    "plotly>=5.20",
+    "joblib>=1.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-m 'not integration'"
+markers = [
+    "integration: real-data integration test (uses/downloads PhysioNet EEGMMIDB data); run with: pytest -q -m integration",
+]

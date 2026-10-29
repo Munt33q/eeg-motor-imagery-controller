@@ -1,0 +1,35 @@
+{
+  "seed": 42,
+  "data": {
+    "lr_imagery_runs": [4, 8, 12],
+    "dev_runs": [4, 8],
+    "final_runs": [12],
+    "label_map": { "T1": 0, "T2": 1 },
+    "rest_description": "T0",
+    "label_names": { "0": "left", "1": "right" }
+  },
+  "preprocess": {
+    "channels": ["C3", "Cz", "C4", "FC3", "FCz", "FC4", "CP3", "CPz", "CP4"],
+    "sfreq_hz": 160.0,
+    "bandpass_hz": [8.0, 30.0],
+    "filter_order": 4,
+    "filtering": "sosfilt_causal_forward_only",
+    "settling_s": 1.0,
+    "epoch_start_s": 1.0,
+    "epoch_end_s": 3.0,
+    "baseline_correction": null
+  },
+  "model": {
+    "csp_components": 4,
+    "csp_reg": "ledoit_wolf",
+    "csp_log": true,
+    "csp_norm_trace": false,
+    "lda_solver": "lsqr",
+    "lda_shrinkage": "auto"
+  },
+  "controller": {
+    "threshold": 0.7,
+    "cursor_step": 0.15,
+    "decision_delay_s": 3.0
+  }
+}

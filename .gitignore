@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Raw data downloads (provide the downloader, not the recordings)
+data/
+!data/*.csv
+!data/*.json
+
+# Large artifacts are regenerated; small metrics/CSV outputs are kept
+artifacts/*.joblib
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# local pytest scratch dir (sandbox only; not needed on normal machines)
+.pytest_tmp/

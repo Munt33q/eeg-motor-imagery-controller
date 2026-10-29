@@ -1,0 +1,61 @@
+{
+  "subject_id": 1,
+  "fit_runs": [
+    4,
+    8
+  ],
+  "channels": [
+    "C3",
+    "Cz",
+    "C4",
+    "FC3",
+    "FCz",
+    "FC4",
+    "CP3",
+    "CPz",
+    "CP4"
+  ],
+  "channel_order_note": "order is significant; do not reorder",
+  "sfreq_hz": 160.0,
+  "filter": {
+    "type": "butterworth_bandpass_sos_causal",
+    "bandpass_hz": [
+      8.0,
+      30.0
+    ],
+    "order": 4,
+    "implementation": "scipy.signal.sosfilt, forward-only"
+  },
+  "epoch": {
+    "start_s": 1.0,
+    "end_s": 3.0,
+    "samples": 320,
+    "baseline_correction": null
+  },
+  "class_mapping": {
+    "0": "left (T1)",
+    "1": "right (T2)"
+  },
+  "label_source": "explicit annotation description mapping (T1->0, T2->1)",
+  "seed": 42,
+  "package_versions": {
+    "python": "3.13.14",
+    "eeg_controller": "0.1.0",
+    "mne": "1.13.2",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "scikit-learn": "1.9.1",
+    "pandas": "3.1.0",
+    "joblib": "1.6.0"
+  },
+  "data_file_hashes": {
+    "trials_subj1.csv": "3beb3941f9963113c53f457eef84d71bb91b30a1b9255b30998ad74b1c5cc4d9",
+    "S001R04.edf": "3d161f88e1c00632585287d2ce584c2bc0f08862438eb255ea8723e00fac693d",
+    "S001R08.edf": "358fb5189220725141968ae285fbe9e3f36210b834ffba71d940af308e3aca68",
+    "S001R12.edf": "2b281c9b687b4c4176e83251d74743721f2d6ebd76656a972a3b9c44d9d88cd5"
+  },
+  "n_train_trials": 30,
+  "n_train_left": 16,
+  "n_train_right": 14,
+  "saved_at_utc": "2026-10-29T07:58:10.859782+00:00"
+}

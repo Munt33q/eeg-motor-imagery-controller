@@ -1,0 +1,23 @@
+﻿Split: dev runs (4, 8) (30 trials) | final runs (12,) (15 trials)
+Model artifact loaded.
+Majority baseline label (dev only): 0
+Evaluating final run 12: S001R12.edf
+  run 12: 15 left/right events (left=7, right=8), 15 rest skipped
+
+Wrote E:\RPHD\eeg-motor-imagery-controller\artifacts\predictions_sub1.csv (15 trials)
+Wrote E:\RPHD\eeg-motor-imagery-controller\artifacts\metrics_sub1.json
+Wrote E:\RPHD\eeg-motor-imagery-controller\artifacts\exclusions_final_sub1.csv
+
+=== Final-run metrics (all eligible trials) ===
+n trials:            15
+accuracy:            0.800
+balanced accuracy:   0.804
+confusion (rows=true, cols=pred):
+  left : left=6, right=1
+  right: left=2, right=6
+majority baseline:   0.467 (label=0)
+coverage:            0.933
+accepted accuracy:   0.786
+incorrect issued:    3 / 15
+rejected trials:     1
+inference ms median: 0.039, p95: 0.388

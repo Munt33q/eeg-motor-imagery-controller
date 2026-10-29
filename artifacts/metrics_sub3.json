@@ -1,0 +1,88 @@
+{
+  "n_trials": 15,
+  "accuracy": 0.4666666666666667,
+  "balanced_accuracy": 0.48214285714285715,
+  "confusion": {
+    "n": 15,
+    "order": [
+      "left",
+      "right"
+    ],
+    "matrix": {
+      "true_left_pred_left": 2,
+      "true_left_pred_right": 6,
+      "true_right_pred_left": 2,
+      "true_right_pred_right": 5
+    },
+    "per_class_recall": {
+      "left": 0.25,
+      "right": 0.7142857142857143
+    }
+  },
+  "majority_baseline": {
+    "label": 0,
+    "dev_source_runs": [
+      4,
+      8
+    ],
+    "test_accuracy": 0.5333333333333333
+  },
+  "coverage": 0.6,
+  "accepted_accuracy": 0.5555555555555556,
+  "incorrect_issued_commands": 4,
+  "incorrect_issued_rate": 0.26666666666666666,
+  "rejected_trials": 6,
+  "inference_ms": {
+    "median": 0.012699980288743973,
+    "p95": 0.03119013272225855
+  },
+  "note_inference_vs_delay": "inference_ms is model compute time only; the cue-to-decision delay is the fixed 3.0 s epoch window and is not comparable",
+  "subject_id": 3,
+  "final_runs": [
+    12
+  ],
+  "dev_runs": [
+    4,
+    8
+  ],
+  "threshold": 0.7,
+  "threshold_is_frozen_default": true,
+  "per_run": {
+    "12": {
+      "n_trials": 15,
+      "accuracy": 0.4666666666666667,
+      "balanced_accuracy": 0.48214285714285715,
+      "confusion": {
+        "n": 15,
+        "order": [
+          "left",
+          "right"
+        ],
+        "matrix": {
+          "true_left_pred_left": 2,
+          "true_left_pred_right": 6,
+          "true_right_pred_left": 2,
+          "true_right_pred_right": 5
+        },
+        "per_class_recall": {
+          "left": 0.25,
+          "right": 0.7142857142857143
+        }
+      },
+      "majority_baseline": {
+        "label": 0,
+        "test_accuracy": 0.5333333333333333
+      },
+      "coverage": 0.6,
+      "accepted_accuracy": 0.5555555555555556,
+      "incorrect_issued_commands": 4,
+      "incorrect_issued_rate": 0.26666666666666666,
+      "rejected_trials": 6,
+      "inference_ms": {
+        "median": 0.012699980288743973,
+        "p95": 0.03119013272225855
+      },
+      "note_inference_vs_delay": "inference_ms is model compute time only; the cue-to-decision delay is the fixed 3.0 s epoch window and is not comparable"
+    }
+  }
+}
