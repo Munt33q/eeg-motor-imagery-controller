@@ -8,10 +8,9 @@ __pycache__/
 build/
 dist/
 
-# Raw data downloads (provide the downloader, not the recordings)
-data/
-!data/*.csv
-!data/*.json
+# Raw data downloads (provide the downloader, not the recordings).
+# MNE nests EDF files under data/raw/MNE-eegbci-data/...
+data/raw/
 
 # Large artifacts are regenerated; small metrics/CSV outputs are kept
 artifacts/*.joblib
