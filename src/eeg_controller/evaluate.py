@@ -21,8 +21,6 @@ from .config import Config
 from .controller import COMMAND_HOLD, choose_command, advance_cursor
 from .model import Pipeline, predict_with_scores
 
-COMMANDS = ("LEFT", "RIGHT", "HOLD")
-
 
 @dataclass
 class SplitInfo:
@@ -60,6 +58,7 @@ def build_predictions_frame(
     run_id: int,
     subject_id: int,
     threshold: float,
+    majority_label: int | None = None,
 ) -> tuple[pd.DataFrame, dict]:
     """Predict on every eligible epoch and attach controller decisions.
 
@@ -67,6 +66,9 @@ def build_predictions_frame(
     around actual model inference via ``perf_counter``. Controller commands
     are computed from model probabilities only — labels are never passed to
     the controller.
+
+    ``majority_label`` must come from *development* labels (the caller
+    computes it); test labels are never used to derive baselines.
     """
     X = epochs.X
     if len(X) == 0:
@@ -119,7 +121,7 @@ def build_predictions_frame(
     predictions["cursor_after"] = cursor_positions
 
     metrics = compute_metrics(
-        predictions, label_names=cfg.data.label_names, majority_label=int(pd.Series(labels).mode()[0])
+        predictions, label_names=cfg.data.label_names, majority_label=majority_label
     )
     return predictions, metrics
 

@@ -33,8 +33,8 @@
   "incorrect_issued_rate": 0.26666666666666666,
   "rejected_trials": 6,
   "inference_ms": {
-    "median": 0.012699980288743973,
-    "p95": 0.03119013272225855
+    "median": 0.020300038158893585,
+    "p95": 0.047820061445236185
   },
   "note_inference_vs_delay": "inference_ms is model compute time only; the cue-to-decision delay is the fixed 3.0 s epoch window and is not comparable",
   "subject_id": 3,
@@ -79,8 +79,8 @@
       "incorrect_issued_rate": 0.26666666666666666,
       "rejected_trials": 6,
       "inference_ms": {
-        "median": 0.012699980288743973,
-        "p95": 0.03119013272225855
+        "median": 0.020300038158893585,
+        "p95": 0.047820061445236185
       },
       "note_inference_vs_delay": "inference_ms is model compute time only; the cue-to-decision delay is the fixed 3.0 s epoch window and is not comparable"
     }

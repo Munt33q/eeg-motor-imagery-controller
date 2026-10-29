@@ -92,7 +92,8 @@ def main() -> int:
         print(f"Evaluating final run {run}: {edf_path.name}")
         epochs, excl = load_and_preprocess_run(edf_path, cfg, run, args.subject)
         preds, metrics = build_predictions_frame(
-            cfg, model, epochs, run, args.subject, threshold
+            cfg, model, epochs, run, args.subject, threshold,
+            majority_label=majority_label,
         )
         pred_frames.append(preds)
         metrics_by_run[str(run)] = metrics
