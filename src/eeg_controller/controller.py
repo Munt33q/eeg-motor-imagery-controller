@@ -31,6 +31,10 @@ def choose_command(
     """
     probabilities = np.asarray(probabilities, dtype=np.float64)
     classes = list(classes)
+    if not np.isfinite(threshold) or not 0.5 <= threshold <= 1.0:
+        raise ValueError("threshold must be finite and within [0.5, 1.0]")
+    if len(classes) != 2 or set(classes) != {0, 1}:
+        raise ValueError("classes must contain exactly left (0) and right (1)")
     if probabilities.shape != (len(classes),):
         raise ValueError(
             f"probabilities shape {probabilities.shape} does not match "
@@ -38,6 +42,8 @@ def choose_command(
         )
     if not np.isfinite(probabilities).all():
         raise ValueError("probabilities must be finite")
+    if np.any((probabilities < 0) | (probabilities > 1)) or not np.isclose(probabilities.sum(), 1.0):
+        raise ValueError("probabilities must be in [0, 1] and sum to 1")
     if len(set(classes)) != len(classes):
         raise ValueError("classes must be unique")
 
@@ -45,8 +51,8 @@ def choose_command(
     best_p = float(probabilities[best_idx])
     if best_p < threshold:
         return COMMAND_HOLD
-    if best_p == 0.5 and threshold <= 0.5:
-        return COMMAND_HOLD  # exact tie at or below 0.5 threshold abstains
+    if probabilities[0] == probabilities[1]:
+        return COMMAND_HOLD
     best_class = classes[best_idx]
     if best_class == 0:
         return COMMAND_LEFT
@@ -59,6 +65,8 @@ def advance_cursor(
     x: float, command: str, step: float = DEFAULT_STEP
 ) -> float:
     """Move the cursor one step; clamp to [-1.0, 1.0]."""
+    if not np.isfinite(x) or not np.isfinite(step) or step < 0:
+        raise ValueError("cursor and step must be finite; step must be non-negative")
     if command == COMMAND_LEFT:
         x = x - step
     elif command == COMMAND_RIGHT:

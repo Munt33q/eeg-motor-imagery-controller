@@ -14,7 +14,6 @@ Task contract (guide section 4):
 from __future__ import annotations
 
 import hashlib
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -93,9 +92,7 @@ def load_run_raw(
     Returns the raw object in volts (MNE convention). Channel selection and
     filtering happen later, in :mod:`eeg_controller.preprocess`.
     """
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # EDF header quirks; validated below
-        raw = mne.io.read_raw_edf(edf_path, preload=True, verbose="ERROR")
+    raw = mne.io.read_raw_edf(edf_path, preload=True, verbose="WARNING")
     eegbci.standardize(raw)  # in-place: e.g. 'Fc5.' -> 'FC5'
 
     missing = [ch for ch in channels if ch not in raw.ch_names]
@@ -105,7 +102,7 @@ def load_run_raw(
             f"EDF (available: {raw.ch_names}); refusing to substitute channels"
         )
     actual = raw.info["sfreq"]
-    if not np.isclose(actual, sfreq_hz):
+    if not np.isclose(actual, sfreq_hz, rtol=0, atol=1e-9):
         raise DataError(
             f"{Path(edf_path).name}: sampling rate {actual} Hz != expected "
             f"{sfreq_hz} Hz; this contract does not resample"
@@ -131,7 +128,9 @@ def extract_events(raw: mne.io.Raw, cfg: Config, run_id: int) -> RunEvents:
             rest_count += 1
             continue
         keep_labels.append(_label_from_description(desc, cfg.data.label_map))
-        keep_samples.append(int(round(onset_s * sfreq)))
+        # Annotation onset includes Raw.first_time, including on cropped
+        # recordings; convert to an index relative to get_data() sample 0.
+        keep_samples.append(int(round((onset_s - raw.first_time) * sfreq)))
         keep_desc.append(desc)
 
     if not keep_labels:

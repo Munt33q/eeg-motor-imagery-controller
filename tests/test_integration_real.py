@@ -20,6 +20,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+import subprocess
+import sys
 
 from eeg_controller.config import load_config
 from eeg_controller.preprocess import load_and_preprocess_run
@@ -69,4 +71,24 @@ def test_real_run_contract(subject):
     n_kept = len(epochs.metadata)
     n_excluded = int(exclusions["count"].sum()) if len(exclusions) else 0
     n_in_table = int((trials["run_id"] == run_id).sum())
-    assert n_kept + n_excluded >= n_in_table  # table holds eligible only
+    assert n_kept + n_excluded == n_in_table
+
+
+def test_real_cli_training_evaluation_and_exploratory_isolation(tmp_path):
+    data_dir, _ = _require_data(1)
+    if not list((data_dir / "raw").rglob("S001R04.edf")):
+        pytest.skip("real EDF downloads not available")
+    for stage in ("train", "evaluate"):
+        subprocess.run([
+            sys.executable, str(PROJECT_ROOT / f"scripts/{stage}.py"),
+            "--subject", "1", "--data-dir", str(data_dir),
+            "--artifacts-dir", str(tmp_path),
+        ], cwd=PROJECT_ROOT, check=True, capture_output=True, text=True)
+    final = (tmp_path / "predictions_sub1.csv").read_bytes()
+    subprocess.run([
+        sys.executable, str(PROJECT_ROOT / "scripts/evaluate.py"),
+        "--subject", "1", "--data-dir", str(data_dir),
+        "--artifacts-dir", str(tmp_path), "--threshold", "0.8",
+    ], cwd=PROJECT_ROOT, check=True, capture_output=True, text=True)
+    assert (tmp_path / "predictions_sub1.csv").read_bytes() == final
+    assert (tmp_path / "predictions_sub1_exploratory.csv").exists()

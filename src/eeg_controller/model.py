@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import sys
+import subprocess
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -98,6 +100,16 @@ def load_model(model_path: str | Path) -> Pipeline:
     return model
 
 
+def validate_artifact_metadata(metadata: dict, cfg: Config, subject_id: int) -> None:
+    """Reject a different subject, split, or processing/model contract before inference."""
+    expected = json.loads(json.dumps(asdict(cfg)))
+    stored = metadata.get("config")
+    if metadata.get("subject_id") != subject_id or metadata.get("fit_runs") != list(cfg.data.dev_runs):
+        raise ValueError("model subject/split contract mismatch; retrain this subject")
+    if stored is None or any(stored.get(k) != expected[k] for k in ("data", "preprocess", "model")):
+        raise ValueError("model preprocessing contract mismatch or missing provenance; retrain")
+
+
 def provenance_metadata(
     cfg: Config,
     subject_id: int,
@@ -117,6 +129,7 @@ def provenance_metadata(
     if tt_path.exists():
         hashes[tt_path.name] = hash_file(tt_path)
         tt = pd.read_csv(tt_path)
+        tt = tt[tt["run_id"].isin(fit_runs)]
         hashes.update(
             {
                 name: sha
@@ -124,7 +137,17 @@ def provenance_metadata(
                 if name not in hashes
             }
         )
+    try:
+        code_commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=Path(__file__).resolve().parents[2],
+            text=True, stderr=subprocess.DEVNULL,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        code_commit = None
     return {
+        "config": asdict(cfg),
+        "code_commit": code_commit,
+        "run_split": {"development": list(cfg.data.dev_runs), "final": list(cfg.data.final_runs)},
         "subject_id": subject_id,
         "fit_runs": fit_runs,
         "channels": list(cfg.preprocess.channels),

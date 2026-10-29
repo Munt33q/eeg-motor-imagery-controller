@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -73,22 +72,18 @@ def build_predictions_frame(
     X = epochs.X
     if len(X) == 0:
         raise ValueError(f"run {run_id}: no eligible trials to predict on")
-    preds, p_left, p_right = predict_with_scores(model, X)
     labels = epochs.y
 
     records = []
-    inference_ms_all: list[float] = []
     commands = []
-    accepted_flags = []
     for i in range(len(X)):
-        probs = np.array([p_left[i], p_right[i]])
         t0 = time.perf_counter()
-        command = choose_command(probs, classes=(0, 1), threshold=threshold)
+        preds, p_left, p_right = predict_with_scores(model, X[i : i + 1])
         inference_ms = (time.perf_counter() - t0) * 1e3
-        inference_ms_all.append(inference_ms)
+        probs = np.array([p_left[0], p_right[0]])
+        command = choose_command(probs, classes=(0, 1), threshold=threshold)
         accepted = command != COMMAND_HOLD
         commands.append(command)
-        accepted_flags.append(accepted)
         records.append(
             {
                 "trial_id": int(epochs.metadata.iloc[i]["trial_id"]),
@@ -100,9 +95,9 @@ def build_predictions_frame(
                     + cfg.controller.decision_delay_s
                 ),
                 "true_label": int(labels[i]),
-                "predicted_label": int(preds[i]),
-                "p_left": float(p_left[i]),
-                "p_right": float(p_right[i]),
+                "predicted_label": int(preds[0]),
+                "p_left": float(p_left[0]),
+                "p_right": float(p_right[0]),
                 "inference_ms": float(inference_ms),
                 "command": command,
                 "accepted": bool(accepted),
@@ -114,9 +109,8 @@ def build_predictions_frame(
 
     # Replay simulation: one move per trial, cursor resets to center per trial.
     cursor_positions = []
-    x = 0.0
     for command in commands:
-        x = advance_cursor(x, command, step=cfg.controller.cursor_step)
+        x = advance_cursor(0.0, command, step=cfg.controller.cursor_step)
         cursor_positions.append(x)
     predictions["cursor_after"] = cursor_positions
 
@@ -145,7 +139,6 @@ def compute_metrics(
     y_true = predictions["true_label"].to_numpy()
     y_pred = predictions["predicted_label"].to_numpy()
     accepted = predictions["accepted"].to_numpy(dtype=bool)
-    commands = predictions["command"].to_numpy()
 
     correct = y_true == y_pred
     accuracy = float(correct.mean()) if n else None
@@ -168,7 +161,7 @@ def compute_metrics(
             "true_left_pred_right": fp_r,
             "true_right_pred_left": fp_l,
             "true_right_pred_right": tp_r,
-},
+        },
         "per_class_recall": {
             "left": per_class_recall[0],
             "right": per_class_recall[1],
@@ -201,6 +194,8 @@ def compute_metrics(
             "test_accuracy": majority_accuracy,
         },
         "coverage": coverage,
+        "per_class_counts": {"left": int((y_true == 0).sum()), "right": int((y_true == 1).sum())},
+        "accepted_trials": int(accepted.sum()),
         "accepted_accuracy": accepted_accuracy,
         "incorrect_issued_commands": incorrect_issued,
         "incorrect_issued_rate": incorrect_issued_rate,

@@ -87,14 +87,19 @@ class EpochSet:
     sfreq_hz: float
     epoch_start_s: float
     epoch_end_s: float
+    audit_metadata: pd.DataFrame | None = None
 
     def __post_init__(self) -> None:
+        if self.X.ndim != 3 or self.X.dtype != np.float64:
+            raise ValueError("X must be float64 [trials, channels, samples] in volts")
         n_trials, n_channels, n_samples = self.X.shape
+        if n_channels != len(self.channel_names):
+            raise ValueError("X channel count does not match channel_names")
         if self.y.shape != (n_trials,):
             raise ValueError("y must have shape [trials]")
         if len(self.metadata) != n_trials:
             raise ValueError("metadata must have one row per trial")
-        if tuple(self.channel_names) != tuple(self.metadata.attrs["channels"]):
+        if tuple(self.channel_names) != tuple(self.metadata.attrs.get("channels", self.channel_names)):
             raise ValueError("metadata channel order does not match channel_names")
         expected = int(round((self.epoch_end_s - self.epoch_start_s) * self.sfreq_hz))
         if n_samples != expected:
@@ -157,12 +162,16 @@ def build_epochs_for_run(
     referenced and causally filtered. ``events`` is a
     :class:`~eeg_controller.data.RunEvents`.
 
-    Returns the full EpochSet (kept + excluded rows, so exclusions are
-    auditable) and an exclusion summary DataFrame.
+    Returns eligible epochs with aligned metadata, a full per-trial audit
+    in audit_metadata, and an exclusion summary DataFrame.
     """
     n_channels, n_samples_total = raw_data.shape
     p = cfg.preprocess
     fs = p.sfreq_hz
+    if tuple(channel_names) != p.channels or n_channels != len(p.channels):
+        raise DataError("epoch channels must match the configured channel order")
+    if not np.isclose(events.sfreq_hz, fs, rtol=0, atol=1e-9):
+        raise DataError("event sampling rate does not match the preprocessing contract")
     start_samp = int(round(p.epoch_start_s * fs))
     end_samp = int(round(p.epoch_end_s * fs))  # half-open: [start, end)
     n_per = end_samp - start_samp
@@ -180,7 +189,10 @@ def build_epochs_for_run(
         s0, s1 = onset + start_samp, onset + end_samp
         trial_id = int(events.trial_ids[i])
         reason = ""
-        if s1 > n_samples_total:
+        if s0 < 0:
+            reason = REASON_OUT_OF_BOUNDS
+            epoch = None
+        elif s1 > n_samples_total:
             reason = REASON_INCOMPLETE
             epoch = None
         else:
@@ -209,7 +221,10 @@ def build_epochs_for_run(
     # EpochSet contract: metadata rows correspond 1:1 with X/y rows and
     # contain *eligible* trials only. Excluded trials are recorded in the
     # returned summary (counts by run/class/reason), never silently dropped.
-    full = pd.DataFrame(rows)
+    full = pd.DataFrame(rows, columns=[
+        "subject_id", "run_id", "trial_id", "event_sample", "onset_s",
+        "label", "description", "exclusion_reason",
+    ])
     kept_mask = (full["exclusion_reason"] == "").to_numpy()
     metadata = full.loc[kept_mask].reset_index(drop=True)
     metadata.attrs["channels"] = tuple(channel_names)
@@ -230,6 +245,7 @@ def build_epochs_for_run(
         sfreq_hz=fs,
         epoch_start_s=p.epoch_start_s,
         epoch_end_s=p.epoch_end_s,
+        audit_metadata=full.copy(),
     )
 
     summary = (
@@ -241,9 +257,9 @@ def build_epochs_for_run(
     return epochs, summary
 
 
-def load_and_preprocess_run(
+def load_and_preprocess_run_data(
     edf_path: str | Path, cfg: Config, run_id: int, subject_id: int
-) -> tuple[EpochSet, pd.DataFrame]:
+) -> tuple[np.ndarray, "object", EpochSet, pd.DataFrame]:
     """Full causal preprocessing for one EDF run, kept run-local.
 
     Steps: load + standardize -> select the nine contract channels *in
@@ -251,8 +267,10 @@ def load_and_preprocess_run(
     bandpass (fresh filter state; never filters across run boundaries) ->
     cue-aligned epochs with quality exclusions.
 
-    Returns the EpochSet (eligible trials only; exclusions in the summary)
-    and the exclusion summary for the run.
+    Returns (filtered_data [channels, samples] in volts, RunEvents,
+    EpochSet with eligible trials only, exclusion summary). The continuous
+    data exists for replay waveform display only; classifier input is and
+    remains the EpochSet.
     """
     from .data import check_run_supported
 
@@ -275,6 +293,17 @@ def load_and_preprocess_run(
     data = filt.process_chunk(data)
 
     events = extract_events(raw, cfg, run_id)
-    return build_epochs_for_run(
+    epochs, excl = build_epochs_for_run(
         data, events, cfg, p.channels, run_id, subject_id
     )
+    return data, events, epochs, excl
+
+
+def load_and_preprocess_run(
+    edf_path: str | Path, cfg: Config, run_id: int, subject_id: int
+) -> tuple[EpochSet, pd.DataFrame]:
+    """Causal preprocessing returning only (EpochSet, exclusion summary)."""
+    _, _, epochs, excl = load_and_preprocess_run_data(
+        edf_path, cfg, run_id, subject_id
+    )
+    return epochs, excl

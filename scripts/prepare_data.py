@@ -56,8 +56,7 @@ def main() -> int:
         for run in LR_IMAGERY_RUNS:
             epochs, excl = load_and_preprocess_run(run_paths[run], cfg, run, subject_id)
             epochs_by_run[run] = epochs
-            eligible = epochs.metadata[epochs.metadata["exclusion_reason"] == ""]
-            trial_rows.append(eligible)
+            trial_rows.append(epochs.audit_metadata)
             if len(excl):
                 excl_parts.append(excl)
         trials = pd.concat(trial_rows, ignore_index=True)
@@ -85,6 +84,7 @@ def main() -> int:
             "onset_s",
             "label",
             "description",
+            "exclusion_reason",
             "edf_file",
             "edf_relpath",
             "edf_sha256",
@@ -94,7 +94,7 @@ def main() -> int:
         trials_path = data_dir / f"trials_subj{subject_id}.csv"
         trials.to_csv(trials_path, index=False)
         print(
-            f"  wrote {trials_path} ({len(trials)} eligible trials; "
+            f"  wrote {trials_path} ({len(trials)} audited trials; "
             f"left={int((trials['label'] == 0).sum())}, "
             f"right={int((trials['label'] == 1).sum())})"
         )

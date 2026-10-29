@@ -28,13 +28,18 @@
     "test_accuracy": 0.5333333333333333
   },
   "coverage": 0.8666666666666667,
+  "per_class_counts": {
+    "left": 8,
+    "right": 7
+  },
+  "accepted_trials": 13,
   "accepted_accuracy": 0.6153846153846154,
   "incorrect_issued_commands": 5,
   "incorrect_issued_rate": 0.3333333333333333,
   "rejected_trials": 2,
   "inference_ms": {
-    "median": 0.027700094506144524,
-    "p95": 0.08621988818049428
+    "median": 0.399300130084157,
+    "p95": 1.2995300581678717
   },
   "note_inference_vs_delay": "inference_ms is model compute time only; the cue-to-decision delay is the fixed 3.0 s epoch window and is not comparable",
   "subject_id": 4,
@@ -47,6 +52,8 @@
   ],
   "threshold": 0.7,
   "threshold_is_frozen_default": true,
+  "evaluation_note": "Recorded held-out-run evaluation; reruns for software verification are not new independent evidence.",
+  "cue_to_decision_delay_s": 3.0,
   "per_run": {
     "12": {
       "n_trials": 15,
@@ -74,15 +81,24 @@
         "test_accuracy": 0.5333333333333333
       },
       "coverage": 0.8666666666666667,
+      "per_class_counts": {
+        "left": 8,
+        "right": 7
+      },
+      "accepted_trials": 13,
       "accepted_accuracy": 0.6153846153846154,
       "incorrect_issued_commands": 5,
       "incorrect_issued_rate": 0.3333333333333333,
       "rejected_trials": 2,
       "inference_ms": {
-        "median": 0.027700094506144524,
-        "p95": 0.08621988818049428
+        "median": 0.399300130084157,
+        "p95": 1.2995300581678717
       },
       "note_inference_vs_delay": "inference_ms is model compute time only; the cue-to-decision delay is the fixed 3.0 s epoch window and is not comparable"
     }
+  },
+  "data_exclusions": {
+    "total": 0,
+    "by_run_class_reason": []
   }
 }

@@ -9,6 +9,7 @@ falls back to hardcoded parameters.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -95,6 +96,8 @@ def parse_config(raw: dict[str, Any]) -> Config:
         raise ConfigError("dev_runs and final_runs must not share runs")
     if not set(dev_runs) | set(final_runs) <= set(lr_runs):
         raise ConfigError("dev/final runs must be a subset of lr_imagery_runs")
+    if dev_runs != (4, 8) or final_runs != (12,):
+        raise ConfigError("fixed split requires dev_runs [4, 8] and final_runs [12]")
     label_map = dict(_require(data, "label_map", "data"))
     if label_map != {"T1": 0, "T2": 1}:
         raise ConfigError(
@@ -104,8 +107,8 @@ def parse_config(raw: dict[str, Any]) -> Config:
     rest = _require(data, "rest_description", "data")
     label_names_raw = dict(_require(data, "label_names", "data"))
     label_names = {int(k): v for k, v in label_names_raw.items()}
-    if set(label_names.values()) != {"left", "right"}:
-        raise ConfigError("data.label_names must contain 'left' and 'right'")
+    if label_names != {0: "left", 1: "right"} or rest != "T0":
+        raise ConfigError("labels must be 0=left, 1=right, with T0 rest")
 
     pre = _require(raw, "preprocess", "root")
     channels = tuple(_require(pre, "channels", "preprocess"))
@@ -129,16 +132,31 @@ def parse_config(raw: dict[str, Any]) -> Config:
     end_s = float(_require(pre, "epoch_end_s", "preprocess"))
     if not (0 <= start_s < end_s):
         raise ConfigError("epoch window must satisfy 0 <= start < end")
+    if not all(math.isfinite(x) for x in (sfreq, start_s, end_s)):
+        raise ConfigError("sampling rate and epoch boundaries must be finite")
+    if _require(pre, "baseline_correction", "preprocess") is not None:
+        raise ConfigError("baseline_correction must be null")
+    settling = float(_require(pre, "settling_s", "preprocess"))
+    if not math.isfinite(settling) or settling < 0:
+        raise ConfigError("settling_s must be finite and non-negative")
+    if int(pre["filter_order"]) < 1:
+        raise ConfigError("filter_order must be positive")
 
     model = _require(raw, "model", "root")
     csp_components = int(_require(model, "csp_components", "model"))
-    if csp_components < 1:
-        raise ConfigError("model.csp_components must be >= 1")
+    if not 1 <= csp_components <= len(channels):
+        raise ConfigError("CSP components must be between 1 and the channel count")
 
     ctrl = _require(raw, "controller", "root")
     threshold = float(_require(ctrl, "threshold", "controller"))
     if not (0.5 <= threshold <= 1.0):
         raise ConfigError("controller.threshold must be within [0.5, 1.0]")
+    delay = float(_require(ctrl, "decision_delay_s", "controller"))
+    if delay != end_s:
+        raise ConfigError("decision_delay_s must equal epoch_end_s; no early decisions")
+    step = float(_require(ctrl, "cursor_step", "controller"))
+    if not math.isfinite(step) or step <= 0:
+        raise ConfigError("cursor_step must be finite and positive")
 
     return Config(
         seed=int(_require(raw, "seed", "root")),

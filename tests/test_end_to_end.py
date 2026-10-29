@@ -39,11 +39,9 @@ def test_full_pipeline_mechanics(cfg, tmp_path, monkeypatch):
     np.testing.assert_allclose(
         preds["p_left"] + preds["p_right"], np.ones(len(preds)), atol=1e-9
     )
-    # cursor stays within bounds; per-trial change is at most one step
-    # (unless clamped at ±1.0, which is the intended behavior)
-    assert (preds["cursor_after"].abs() <= 1.0).all()
-    deltas = preds["cursor_after"].diff().fillna(preds["cursor_after"].iloc[0])
-    assert (deltas.abs() <= cfg.controller.cursor_step + 1e-12).all()
+    # Each trial starts at center, independently of previous commands.
+    expected_positions = preds["command"].map({"LEFT": -0.15, "RIGHT": 0.15, "HOLD": 0.0})
+    np.testing.assert_allclose(preds["cursor_after"], expected_positions)
     # metrics are self-consistent
     n_accepted = int(preds["accepted"].sum())
     assert metrics["rejected_trials"] == 8 - n_accepted

@@ -70,6 +70,8 @@ def test_epoch_at_run_end_is_incomplete(cfg):
     # The excluded trial is recorded with its reason, run, and class.
     assert (summary["exclusion_reason"] == REASON_INCOMPLETE).any()
     assert int(summary["count"].sum()) == 1
+    assert len(epochs.audit_metadata) == 2
+    assert epochs.audit_metadata.iloc[1]["exclusion_reason"] == REASON_INCOMPLETE
 
 
 def test_flat_and_nonfinite_epochs_excluded(cfg):

@@ -2,7 +2,7 @@
 
 Usage:
     python scripts/evaluate.py --subject 1 --config configs/default.json \
-        [--threshold 0.7] [--exploratory]
+        [--threshold 0.7]
 
 Writes artifacts/predictions_sub<id>.csv, artifacts/metrics_sub<id>.json,
 and (if --threshold differs from the config default) marks the run
@@ -27,7 +27,7 @@ from eeg_controller.evaluate import (
     exclusion_summary_table,
     majority_baseline_label,
 )
-from eeg_controller.model import load_model
+from eeg_controller.model import load_model, validate_artifact_metadata
 from eeg_controller.preprocess import load_and_preprocess_run
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -52,9 +52,13 @@ def main() -> int:
     artifacts = Path(args.artifacts_dir)
 
     threshold = cfg.controller.threshold if args.threshold is None else float(args.threshold)
-    exploratory = args.threshold is not None and not np.isclose(
-        threshold, cfg.controller.threshold
-    )
+    if not np.isfinite(threshold) or not 0.5 <= threshold <= 1.0:
+        ap.error("--threshold must be finite and within [0.5, 1.0]")
+    with open(artifacts / f"model_sub{args.subject}_metadata.json", encoding="utf-8") as fh:
+        model_metadata = json.load(fh)
+    validate_artifact_metadata(model_metadata, cfg, args.subject)
+    frozen_threshold = model_metadata["config"]["controller"]["threshold"]
+    exploratory = threshold != frozen_threshold
 
     split = build_split_info(cfg, args.subject, pd.read_csv(data_dir / f"trials_subj{args.subject}.csv"))
     if split.overlap:
@@ -71,6 +75,8 @@ def main() -> int:
     y_dev = []
     for run in cfg.data.dev_runs:
         t = pd.read_csv(data_dir / f"trials_subj{args.subject}.csv")
+        if "exclusion_reason" in t.columns:
+            t = t[t["exclusion_reason"].fillna("") == ""]
         y_dev.extend(t.loc[t["run_id"] == run, "label"].tolist())
     majority_label = majority_baseline_label(np.asarray(y_dev, dtype=np.int64))
     print(f"Majority baseline label (dev only): {majority_label}")
@@ -109,6 +115,8 @@ def main() -> int:
     combined_metrics["dev_runs"] = list(cfg.data.dev_runs)
     combined_metrics["threshold"] = float(threshold)
     combined_metrics["threshold_is_frozen_default"] = not exploratory
+    combined_metrics["evaluation_note"] = "Recorded held-out-run evaluation; reruns for software verification are not new independent evidence."
+    combined_metrics["cue_to_decision_delay_s"] = cfg.controller.decision_delay_s
     combined_metrics["per_run"] = metrics_by_run
     combined_metrics["majority_baseline"] = {
         "label": majority_label,
@@ -121,12 +129,18 @@ def main() -> int:
     else:
         exclusions = pd.DataFrame(columns=["run_id", "label", "exclusion_reason", "count"])
 
-    pred_path = artifacts / f"predictions_sub{args.subject}.csv"
+    combined_metrics["data_exclusions"] = {
+        "total": int(exclusions["count"].sum()),
+        "by_run_class_reason": exclusions.to_dict(orient="records"),
+    }
+    suffix = "_exploratory" if exploratory else ""
+    artifacts.mkdir(parents=True, exist_ok=True)
+    pred_path = artifacts / f"predictions_sub{args.subject}{suffix}.csv"
     predictions.to_csv(pred_path, index=False)
-    metrics_path = artifacts / f"metrics_sub{args.subject}.json"
+    metrics_path = artifacts / f"metrics_sub{args.subject}{suffix}.json"
     with open(metrics_path, "w", encoding="utf-8") as fh:
         json.dump(combined_metrics, fh, indent=2)
-    excl_path = artifacts / f"exclusions_final_sub{args.subject}.csv"
+    excl_path = artifacts / f"exclusions_final_sub{args.subject}{suffix}.csv"
     exclusions.to_csv(excl_path, index=False)
 
     print(f"\nWrote {pred_path} ({len(predictions)} trials)")

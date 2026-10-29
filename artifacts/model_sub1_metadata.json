@@ -1,4 +1,77 @@
 {
+  "config": {
+    "seed": 42,
+    "data": {
+      "lr_imagery_runs": [
+        4,
+        8,
+        12
+      ],
+      "dev_runs": [
+        4,
+        8
+      ],
+      "final_runs": [
+        12
+      ],
+      "label_map": {
+        "T1": 0,
+        "T2": 1
+      },
+      "rest_description": "T0",
+      "label_names": {
+        "0": "left",
+        "1": "right"
+      }
+    },
+    "preprocess": {
+      "channels": [
+        "C3",
+        "Cz",
+        "C4",
+        "FC3",
+        "FCz",
+        "FC4",
+        "CP3",
+        "CPz",
+        "CP4"
+      ],
+      "sfreq_hz": 160.0,
+      "bandpass_hz": [
+        8.0,
+        30.0
+      ],
+      "filter_order": 4,
+      "filtering": "sosfilt_causal_forward_only",
+      "settling_s": 1.0,
+      "epoch_start_s": 1.0,
+      "epoch_end_s": 3.0,
+      "baseline_correction": null
+    },
+    "model": {
+      "csp_components": 4,
+      "csp_reg": "ledoit_wolf",
+      "csp_log": true,
+      "csp_norm_trace": false,
+      "lda_solver": "lsqr",
+      "lda_shrinkage": "auto"
+    },
+    "controller": {
+      "threshold": 0.7,
+      "cursor_step": 0.15,
+      "decision_delay_s": 3.0
+    }
+  },
+  "code_commit": "f763ce0ad139ea9196d91f8d6b0fafffa2071e37",
+  "run_split": {
+    "development": [
+      4,
+      8
+    ],
+    "final": [
+      12
+    ]
+  },
   "subject_id": 1,
   "fit_runs": [
     4,
@@ -49,13 +122,12 @@
     "joblib": "1.6.0"
   },
   "data_file_hashes": {
-    "trials_subj1.csv": "3beb3941f9963113c53f457eef84d71bb91b30a1b9255b30998ad74b1c5cc4d9",
+    "trials_subj1.csv": "56997f4959a7f982cacd217f9238fa01928ea7dc4fffd65d72f2bd3893c00299",
     "S001R04.edf": "3d161f88e1c00632585287d2ce584c2bc0f08862438eb255ea8723e00fac693d",
-    "S001R08.edf": "358fb5189220725141968ae285fbe9e3f36210b834ffba71d940af308e3aca68",
-    "S001R12.edf": "2b281c9b687b4c4176e83251d74743721f2d6ebd76656a972a3b9c44d9d88cd5"
+    "S001R08.edf": "358fb5189220725141968ae285fbe9e3f36210b834ffba71d940af308e3aca68"
   },
   "n_train_trials": 30,
   "n_train_left": 16,
   "n_train_right": 14,
-  "saved_at_utc": "2026-10-29T07:58:10.859782+00:00"
+  "saved_at_utc": "2026-10-29T11:54:22.321710+00:00"
 }

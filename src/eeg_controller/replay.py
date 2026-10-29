@@ -10,6 +10,7 @@ was shown and the cursor move (if any) applied exactly once.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from math import isfinite
 
 
 class ReplayError(RuntimeError):
@@ -28,15 +29,17 @@ class ReplayState:
     issued_commands: dict[int, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.speed <= 0:
+        if not isfinite(self.speed) or self.speed <= 0:
             raise ReplayError("speed must be positive")
-        if self.duration_s < 0:
+        if not isfinite(self.duration_s) or self.duration_s < 0:
             raise ReplayError("duration must be non-negative")
         onsets = [e["onset_s"] for e in self.events]
         if onsets != sorted(onsets):
             raise ReplayError("events must be sorted by onset_s")
         for e in self.events:
-            if e["decision_s"] < e["onset_s"]:
+            if not all(isfinite(e[k]) for k in ("onset_s", "decision_s")):
+                raise ReplayError("event timestamps must be finite")
+            if e["decision_s"] < e["onset_s"] + 3.0:
                 raise ReplayError("decision_s must not precede onset_s")
 
     # -- clock ---------------------------------------------------------------
@@ -46,12 +49,12 @@ class ReplayState:
         ``dt_wall_s`` is wall-clock seconds; playback speed scales it. A
         paused state (speed == 0) does not advance regardless of input.
         """
-        if dt_wall_s < 0:
+        if not isfinite(dt_wall_s) or dt_wall_s < 0:
             raise ReplayError("dt must be non-negative")
         self.time_s = min(self.time_s + dt_wall_s * self.speed, self.duration_s)
 
     def set_speed(self, speed: float) -> None:
-        if speed <= 0:
+        if not isfinite(speed) or speed <= 0:
             raise ReplayError("speed must be positive")
         self.speed = speed
 
@@ -64,7 +67,10 @@ class ReplayState:
     # -- events --------------------------------------------------------------
     def visible_events(self) -> list[dict]:
         """Events whose onset has been reached at current replay time."""
-        return [e for e in self.events if e["onset_s"] <= self.time_s]
+        return [
+            dict(e) if e["decision_s"] <= self.time_s else {"onset_s": e["onset_s"], "decision_s": e["decision_s"]}
+            for e in self.events if e["onset_s"] <= self.time_s
+        ]
 
     def due_events(self) -> list[dict]:
         """Events whose analysis window is complete but not yet processed."""
@@ -80,13 +86,18 @@ class ReplayState:
         Each event is returned exactly once per replay lifetime unless
         :meth:`reset` clears it. Commands are immutable once issued: a
         repeated call cannot re-issue a move (the returned list is empty).
+
+        Events without a ``command`` key are supported (e.g. demo replay,
+        where the command is produced by live inference at decision time);
+        no entry is recorded in ``issued_commands`` for them.
         """
         due = self.due_events()
         out = []
         for i, e in enumerate(self.events):
             if e["decision_s"] <= self.time_s and i not in self.processed_event_ids:
                 self.processed_event_ids.add(i)
-                self.issued_commands[i] = e["command"]
+                if "command" in e:
+                    self.issued_commands[i] = e["command"]
                 out.append(e)
         if len(out) != len(due):
             raise ReplayError("due-event bookkeeping inconsistent")
@@ -114,4 +125,7 @@ class ReplayState:
         # Events with onset_s > current time must not be exposed by the UI.
         # The state itself never reveals them; visible_events() filters by
         # onset. This helper exists for tests and UI assertions.
-        return any(e["onset_s"] > self.time_s for e in self.events)
+        return any(
+            e["decision_s"] > self.time_s and any(k in e for k in ("label", "true_label"))
+            for e in self.visible_events()
+        )

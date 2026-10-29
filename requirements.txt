@@ -6,4 +6,9 @@ scikit-learn
 pandas
 plotly
 joblib
+streamlit
 pytest
+
+# Demo asset capture (screenshots/GIF) — optional, development only
+# playwright
+# pillow
